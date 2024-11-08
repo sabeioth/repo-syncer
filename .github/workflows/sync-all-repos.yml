@@ -9,15 +9,23 @@ jobs:
   sync-repos:
     runs-on: ubuntu-latest
 
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITEE_ACCESS_TOKEN: ${{ secrets.GITEE_ACCESS_TOKEN }}
+      REPOS_TO_SYNC: ${{ secrets.REPOS_TO_SYNC }}
+      JQ_VERSION: 1.6
+      JQ_URL: https://github.com/stedolan/jq/releases/download/jq-$JQ_VERSION/jq-linux64
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install jq
+        run: |
+          wget ${{ env.JQ_URL }} -O /usr/local/bin/jq
+          chmod +x /usr/local/bin/jq
+
       - name: Sync repositories
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITEE_ACCESS_TOKEN: ${{ secrets.GITEE_ACCESS_TOKEN }}
-          REPOS_TO_SYNC: ${{ secrets.REPOS_TO_SYNC }}
         run: |
           echo "$REPOS_TO_SYNC" | jq -r '.[] | "\(.github_repo) \(.gitee_repo)"' | while read -r line; do
             IFS=' ' read -r github_repo gitee_repo <<< "$line"
@@ -43,11 +51,3 @@ jobs:
             rm -rf $repo_name
           done
         shell: bash
-        env:
-          JQ_VERSION: 1.6
-          JQ_URL: https://github.com/stedolan/jq/releases/download/jq-$JQ_VERSION/jq-linux64
-
-      - name: Install jq
-        run: |
-          wget ${{ env.JQ_URL }} -O /usr/local/bin/jq
-          chmod +x /usr/local/bin/jq
