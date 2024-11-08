@@ -27,8 +27,33 @@ jobs:
 
       - name: Check network connection
         run: |
+          echo "Checking network connection to github.com..."
           ping -c 4 github.com
+          if [ $? -ne 0 ]; then
+            echo "Failed to ping github.com"
+            exit 1
+          fi
+
+          echo "Checking network connection to gitee.com..."
           ping -c 4 gitee.com
+          if [ $? -ne 0 ]; then
+            echo "Failed to ping gitee.com"
+            exit 1
+          fi
+
+          echo "Checking network connection to github.com with curl..."
+          curl -I https://github.com
+          if [ $? -ne 0 ]; then
+            echo "Failed to connect to github.com with curl"
+            exit 1
+          fi
+
+          echo "Checking network connection to gitee.com with curl..."
+          curl -I https://gitee.com
+          if [ $? -ne 0 ]; then
+            echo "Failed to connect to gitee.com with curl"
+            exit 1
+          fi
 
       - name: Sync repositories
         run: |
@@ -65,7 +90,14 @@ jobs:
 
             # Push all branches and tags to Gitee
             git push gitee --all
+            if [ $? -ne 0 ]; then
+              echo "Failed to push branches to $gitee_repo"
+            fi
+
             git push gitee --tags
+            if [ $? -ne 0 ]; then
+              echo "Failed to push tags to $gitee_repo"
+            fi
 
             cd ..
             rm -rf $repo_name
