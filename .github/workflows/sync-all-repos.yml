@@ -25,6 +25,11 @@ jobs:
           wget ${{ env.JQ_URL }} -O /usr/local/bin/jq
           chmod +x /usr/local/bin/jq
 
+      - name: Check network connection
+        run: |
+          ping -c 4 github.com
+          ping -c 4 gitee.com
+
       - name: Sync repositories
         run: |
           echo "$REPOS_TO_SYNC" | jq -r '.[] | "\(.github_repo) \(.gitee_repo)"' | while read -r line; do
@@ -33,6 +38,11 @@ jobs:
 
             # Clone the GitHub repository
             git clone https://github.com/$github_repo.git
+
+            if [ $? -ne 0 ]; then
+              echo "Failed to clone $github_repo"
+              continue
+            fi
 
             repo_name=$(basename $github_repo)
             cd $repo_name
