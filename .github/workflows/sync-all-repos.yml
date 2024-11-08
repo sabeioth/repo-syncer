@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TOKEN: ${{ secrets.TOKEN }}
       GITEE_ACCESS_TOKEN: ${{ secrets.GITEE_ACCESS_TOKEN }}
       REPOS_TO_SYNC: ${{ secrets.REPOS_TO_SYNC }}
       JQ_VERSION: 1.6
@@ -39,6 +39,9 @@ jobs:
 
             # Add Gitee as a remote
             git remote add gitee https://$GITEE_ACCESS_TOKEN:x-oauth-basic@gitee.com/$gitee_repo.git
+
+            # Debugging: Print the Gitee remote URL
+            echo "Gitee remote URL: $(git config --get remote.gitee.url)"
 
             # Fetch all branches and tags
             git fetch --all
