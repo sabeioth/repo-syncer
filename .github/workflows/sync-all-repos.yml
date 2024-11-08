@@ -13,51 +13,41 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests
-
       - name: Sync repositories
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITEE_ACCESS_TOKEN: ${{ secrets.GITEE_ACCESS_TOKEN }}
           REPOS_TO_SYNC: ${{ secrets.REPOS_TO_SYNC }}
         run: |
-          import json
-          import os
-          import subprocess
+          echo "$REPOS_TO_SYNC" | jq -r '.[] | "\(.github_repo) \(.gitee_repo)"' | while read -r line; do
+            IFS=' ' read -r github_repo gitee_repo <<< "$line"
+            echo "Syncing $github_repo to $gitee_repo"
 
-          repos_to_sync = json.loads(os.environ['REPOS_TO_SYNC'])
+            # Clone the GitHub repository
+            git clone https://github.com/$github_repo.git
 
-          for repo in repos_to_sync:
-              github_repo = repo['github_repo']
-              gitee_repo = repo['gitee_repo']
+            repo_name=$(basename $github_repo)
+            cd $repo_name
 
-              print(f"Syncing {github_repo} to {gitee_repo}")
+            # Add Gitee as a remote
+            git remote add gitee https://$GITEE_ACCESS_TOKEN:x-oauth-basic@gitee.com/$gitee_repo.git
 
-              # Clone the GitHub repository
-              subprocess.run(['git', 'clone', f'https://github.com/{github_repo}.git'], check=True)
+            # Fetch all branches and tags
+            git fetch --all
 
-              repo_name = github_repo.split('/')[-1]
-              os.chdir(repo_name)
+            # Push all branches and tags to Gitee
+            git push gitee --all
+            git push gitee --tags
 
-              # Add Gitee as a remote
-              subprocess.run(['git', 'remote', 'add', 'gitee', f'https://{os.environ["GITEE_ACCESS_TOKEN"]}:x-oauth-basic@gitee.com/{gitee_repo}.git'], check=True)
+            cd ..
+            rm -rf $repo_name
+          done
+        shell: bash
+        env:
+          JQ_VERSION: 1.6
+          JQ_URL: https://github.com/stedolan/jq/releases/download/jq-$JQ_VERSION/jq-linux64
 
-              # Fetch all branches and tags
-              subprocess.run(['git', 'fetch', '--all'], check=True)
-
-              # Push all branches and tags to Gitee
-              subprocess.run(['git', 'push', 'gitee', '--all'], check=True)
-              subprocess.run(['git', 'push', 'gitee', '--tags'], check=True)
-
-              os.chdir('..')
-
-              # Clean up the local repository
-              subprocess.run(['rm', '-rf', repo_name], check=True)
+      - name: Install jq
+        run: |
+          wget ${{ env.JQ_URL }} -O /usr/local/bin/jq
+          chmod +x /usr/local/bin/jq
