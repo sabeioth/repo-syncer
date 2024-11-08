@@ -37,8 +37,15 @@ jobs:
             repo_name=$(basename $github_repo)
             cd $repo_name
 
+            # Create a temporary file for the Gitee access token
+            echo -n "$GITEE_ACCESS_TOKEN" > .gitee_token
+            chmod 600 .gitee_token
+
             # Add Gitee as a remote
-            git remote add gitee https://$GITEE_ACCESS_TOKEN:x-oauth-basic@gitee.com/$gitee_repo.git
+            git remote add gitee https://x-oauth-basic:@gitee.com/$gitee_repo.git
+
+            # Set the Gitee access token in the git config
+            git config --local url."https://x-oauth-basic:@gitee.com/".insteadOf "https://gitee.com/"
 
             # Debugging: Print the Gitee remote URL
             echo "Gitee remote URL: $(git config --get remote.gitee.url)"
